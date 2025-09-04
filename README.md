@@ -17,9 +17,9 @@ This example will utilize the scenario of dynamically loading contacts from Apex
 
 1. #### **Build custom Apex class**
 
-   1. Create a new Apex class using VS Code or Salesforce Developer Console.  For this example, we have given the name of ‘GetPicklistValueByContact’ to the class.
+   1. Create a new Apex class using VS Code or Salesforce Developer Console.  For this example, we have given the name of `GetPicklistValueByContact` to the class.
 
-   2. Within the GetPicklistValueByContact.cls file, implement the ‘Callable’ interface to the GetPicklistValueByContact class.  Note that implementing this interface will require implementing the call(String action, Map\<String, Object\> args) method. The completed omniListComponent.js file should look like below:
+   2. Within the `GetPicklistValueByContact.cls` file, implement the ‘Callable’ interface to the `GetPicklistValueByContact` class.  Note that implementing this interface will require implementing the `call(String action, Map\<String, Object\> args)` method. The completed `omniListComponent.js` file should look like below:
 
 
 
@@ -70,52 +70,174 @@ This example will utilize the scenario of dynamically loading contacts from Apex
 
 2. #### **Build custom Lightning Web Component (LWC)**
 
-   1. Create a new Lightning Web Component using VS Code or Salesforce Developer Console.  For this example, we have named the component ‘omniListComponent’.
+   1. Create a new Lightning Web Component using VS Code or Salesforce Developer Console.  For this example, we have named the component `omniListComponent`.
 
-   2. Within the omniListComponent.html file, define the UI with a simple \<lightning-combobox\> component. The completed omniListComponent.hmt file should look like below.  Be sure to notice the binding declarations.
+   2. Within the `omniListComponent.html` file, define the UI with a simple `<lightning-combobox\>` component. The completed `omniListComponent.html` file should look like below.  Be sure to notice the binding declarations.
 
-| omniListComponent.html \<template\>    \<lightning-layout horizontal-align\="spread" multiple-rows\>        \<lightning-layout-item size\="12"\>            \<lightning-combobox                name\="progress"                label\="Contacts"                value\={contactId}                placeholder\={placeholder}                options\={options}                onchange\={handleContactChange}            \>            \</lightning-combobox\>        \</lightning-layout-item\>    \</lightning-layout\> \</template\>  |
-| ----- |
+**omniListComponent.html**
 
-   3. Within the omniListComponent.js file, import OmniscriptBaseMixin to interact with an Omniscript by extending the OmniScriptBaseMixin component. The OmniScriptBaseMixin includes methods to read/update an Omniscript's data JSON, pass parameters, and more.
+    <template>
+        <lightning-layout horizontal-align="spread" multiple-rows>
+            <lightning-layout-item size="12">
+                <lightning-combobox
+                    name="progress"
+                    label="Contacts"
+                    value={contactId}
+                    placeholder={placeholder}
+                    options={options}
+                    onchange={handleContactChange}
+                >
+                </lightning-combobox>
+            </lightning-layout-item>
+        </lightning-layout>
+    </template>
 
-| import { OmniscriptBaseMixin } from 'omnistudio/omniscriptBaseMixin'; |
-| :---- |
+   3. Within the `omniListComponent.js` file, `import OmniscriptBaseMixin` to interact with an Omniscript by extending the `OmniScriptBaseMixin` component. The `OmniScriptBaseMixin` includes methods to read/update an Omniscript's data JSON, pass parameters, and more.
+
+    import { OmniscriptBaseMixin } from 'omnistudio/omniscriptBaseMixin';
 
    4. On the class definition file, extend the OmniScriptBaseMixin component to wrap a Salesforce Lightning component:
 
-| export default class OmniListComponent extends OmniscriptBaseMixin(LightningElement) { |
-| :---- |
+    export default class OmniListComponent extends OmniscriptBaseMixin(LightningElement) {
+
 
    5. Map all binding definitions within the omniListComponent.js file to the ones declared above in the omniListComponent.html page. Notice the @api directive attached to the accountId getter/setter.  This enables external access by the Omniscript when the user selects an account from the account Select component.
 
-| @apiget accountId() {    return this.\_accountId;}set accountId(value) {    this.\_accountId \= value;}get contactId() {    return this.\_contactId;}set contactId(value) {  this.\_contactId \= value;}get options() {  return this.\_options;}set options(value) {  this.\_options \= value;}get placeholder() {  return this.accountId ? "Select a contact" : "An account must be selected first";} |
-| :---- |
+    @api
+    get accountId() {
+        return this._accountId;
+    }
+    set accountId(value) {
+        this._accountId = value;
+    }
+
+    get contactId() {
+        return this._contactId;
+    }
+    set contactId(value) {
+        this._contactId = value;
+    }
+
+    get options() {
+        return this._options;
+    }
+    set options(value) {
+        this._options = value;
+    }
+
+    get placeholder() {
+        return this.accountId ? "Select a contact" : "An account must be selected first";
+    }
 
    6. Add a loadContacts() method enabling the Lightning Web Component to make a remote call to your custom Apex class.  Embedded Lightning Web Components must proxy through the Omniscript using the omniRemoteCall() method as they’re unable to directly connect to the Apex class.
 
-|    async loadContacts(accountId) {        if (accountId) {            const params \= {                input: {'accountId': accountId},                sClassName: 'GetPicklistValueByContact',                sMethodName: 'ContactNames',                options: {}            }            this.omniRemoteCall(params, true).then(response \=\> {                this.options \= response.result.options;                console.log(response);            }).catch(error \=\> {                console.log(error);            });        }    } |
-| :---- |
+    async loadContacts(accountId) {
+        if (accountId) {
+            const params = {
+                input: {'accountId': accountId},
+                sClassName: 'GetPicklistValueByContact',
+                sMethodName: 'ContactNames',
+                options: {}
+            }
+            this.omniRemoteCall(params, true).then(response => {
+                this.options = response.result.options;
+                console.log(response);
+            }).catch(error => {
+                console.log(error);
+            });
+        }
+    }
+
 
    7. Update the accountId setter to call the loadContacts() method whenever the account Id value is updated:
 
-|    set accountId(value) {         this.\_accountId \= value;         this.loadContacts(this.\_accountId);     } |
-| :---- |
+    set accountId(value) {
+        this._accountId = value;
+        this.loadContacts(this._accountId);
+    }
+
 
    8. Add an event handler to update the Omniscript’s data JSON when a user selects a contact.  Notice this implements the omniUpdateDataJson() method.
 
-|    handleContactChange(event) {         this.contactId \= event.detail.value;         this.omniUpdateDataJson(this.contactId);    } |
-| :---- |
+    handleContactChange(event) {
+        this.contactId = event.detail.value;
+        this.omniUpdateDataJson(this.contactId);
+    }
+
 
    9. The completed omniListComponent.js file should look like below:
 
-| omniListComponent.js import { LightningElement, api } from 'lwc'; import { OmniscriptBaseMixin } from 'omnistudio/omniscriptBaseMixin'; export default class OmniListComponent extends OmniscriptBaseMixin(LightningElement) {    \_accountId;    \_contactId;    \_options \= \[\];    @api    get accountId() {        return this.\_accountId;    }    set accountId(value) {        this.\_accountId \= value;        this.loadContacts(this.\_accountId);    }    get contactId() {        return this.\_contactId;    }    set contactId(value) {        this.\_contactId \= value;    }    get options() {        return this.\_options;    }    set options(value) {        this.\_options \= value;    }    get placeholder() {        return this.accountId ? "Select a contact" : "An account must be selected first";    }    async loadContacts(accountId) {        if (accountId) {            const params \= {                input: {'accountId': accountId},                sClassName: 'GetPicklistValueByContact',                sMethodName: 'ContactNames',                options: {}            }            this.omniRemoteCall(params, true).then(response \=\> {                this.options \= response.result.options;                console.log(response);            }).catch(error \=\> {                console.log(error);            });        }    }    handleContactChange(event) {        this.contactId \= event.detail.value;        this.omniUpdateDataJson(this.contactId);    } }  |
-| ----- |
+**omniListComponent.js**
+
+    import { LightningElement, api } from 'lwc';
+    import { OmniscriptBaseMixin } from 'omnistudio/omniscriptBaseMixin';
+
+    export default class OmniListComponent extends OmniscriptBaseMixin(LightningElement) {
+        _accountId;
+        _contactId;
+        _options = [];
+
+        @api
+        get accountId() {
+            return this._accountId;
+        }
+        set accountId(value) {
+            this._accountId = value;
+            this.loadContacts(this._accountId);
+        }
+
+        get contactId() {
+            return this._contactId;
+        }
+        set contactId(value) {
+            this._contactId = value;
+        }
+
+        get options() {
+            return this._options;
+        }
+        set options(value) {
+            this._options = value;
+        }
+
+        get placeholder() {
+            return this.accountId ? "Select a contact" : "An account must be selected first";
+        }
+
+        async loadContacts(accountId) {
+            if (accountId) {
+                const params = {
+                    input: {'accountId': accountId},
+                    sClassName: 'GetPicklistValueByContact',
+                    sMethodName: 'ContactNames',
+                    options: {}
+                }
+                this.omniRemoteCall(params, true).then(response => {
+                    this.options = response.result.options;
+                    console.log(response);
+                }).catch(error => {
+                    console.log(error);
+                });
+            }
+        }
+
+        handleContactChange(event) {
+            this.contactId = event.detail.value;
+            this.omniUpdateDataJson(this.contactId);
+        }
+    }
+
 
    10. For reference, the omniListComponent.js-meta.xml should look like below:
 
-| omniListComponent.js-meta.xml \<?xml version\="1.0" encoding\="UTF-8"?\> \<LightningComponentBundle xmlns\="http://soap.sforce.com/2006/04/metadata"\>    \<apiVersion\>64.0\</apiVersion\>    \<isExposed\>true\</isExposed\>    \<runtimeNamespace\>omnistudio\</runtimeNamespace\> \</LightningComponentBundle\> |
-| ----- |
+**omniListComponent.js-meta.xml**
+
+    <?xml version="1.0" encoding="UTF-8"?>
+    <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+        <apiVersion>64.0</apiVersion>
+        <isExposed>true</isExposed>
+        <runtimeNamespace>omnistudio</runtimeNamespace>
+    </LightningComponentBundle>
 
    11. Deploy this source to org (if using VS Code).
 
