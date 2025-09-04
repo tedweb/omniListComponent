@@ -1,0 +1,14 @@
+<template>
+    <lightning-layout horizontal-align="spread" multiple-rows>
+        <lightning-layout-item size="12">
+            <lightning-combobox
+                name="progress"
+                label="Contacts"
+                value={contactId}
+                placeholder={placeholder}
+                options={options}
+                onchange={handleContactChange} >
+            </lightning-combobox>
+        </lightning-layout-item>
+    </lightning-layout>
+</template>
